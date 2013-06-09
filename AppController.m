@@ -1,4 +1,6 @@
 #import "AppController.h"
+#include <pwd.h>
+#include <sys/types.h>
 
 
 @implementation AppController
@@ -61,6 +63,7 @@
 	[statusItem setMenu:myMenu];
 
 	[self menuIconOutOfRange];	
+	[myMenu release];
 }
 
 - (void)handleTimer:(NSTimer *)theTimer
@@ -137,7 +140,8 @@
 	script = [[NSAppleScript alloc]
 			  initWithContentsOfURL:[NSURL fileURLWithPath:[inRangeScriptPath stringValue]]
 			  error:&errDict];
-	ae = [script executeAndReturnError:&errDict];		
+	ae = [script executeAndReturnError:&errDict];	
+	[script release];
 }
 
 - (void)runOutOfRangeScript
@@ -150,6 +154,7 @@
 			  initWithContentsOfURL:[NSURL fileURLWithPath:[outOfRangeScriptPath stringValue]] 
 			  error:&errDict];
 	ae = [script executeAndReturnError:&errDict];	
+	[script release];
 }
 
 - (void)startMonitoring
@@ -352,20 +357,38 @@
 	// See windowWillClose: method
 }
 
+- (NSURL*)chooseScript {
+    NSString *homePath = [NSString stringWithUTF8String:getpwuid(getuid())->pw_dir];
+	NSOpenPanel *op = [NSOpenPanel openPanel];
+    [op setDirectoryURL:[NSURL fileURLWithPath:homePath]];
+    [op setAllowsMultipleSelection:NO];
+	if([op runModal]==NSOKButton) {
+        NSArray *files = [op URLs];
+        if([files count])
+            return [files objectAtIndex:0];
+    }
+    
+    return nil;
+}
+
+/*
 - (IBAction)inRangeScriptChange:(id)sender
 {
 	NSOpenPanel *op = [NSOpenPanel openPanel];
-  
-  NSArray *fileTypesArray;
-  fileTypesArray = [NSArray arrayWithObjects:@"scpt", nil];
-  
-  [op setCanChooseFiles:YES];
-  [op setAllowedFileTypes:fileTypesArray];
-  
-  if ( [op runModal] == NSOKButton ) {
-    NSArray *filenames = [op URLs];    
-  	[inRangeScriptPath setStringValue:[[filenames objectAtIndex:0] path]];
-  }
+	[op runModalForDirectory:@"~" file:nil types:[NSArray arrayWithObject:@"scpt"]];
+	
+	NSArray *filenames = [op filenames];
+	[inRangeScriptPath setStringValue:[filenames objectAtIndex:0]];	
+}
+*/
+
+- (IBAction)inRangeScriptChange:(id)sender
+{
+    NSURL *file = [self chooseScript];
+    if(file) {
+        //inRangeScriptURL = file;
+        [inRangeScriptPath setStringValue:file.path];
+    }
 }
 
 - (IBAction)inRangeScriptClear:(id)sender
@@ -378,20 +401,24 @@
 	[self runInRangeScript];
 }
 
+/*
 - (IBAction)outOfRangeScriptChange:(id)sender
 {
 	NSOpenPanel *op = [NSOpenPanel openPanel];
-  
-  NSArray *fileTypesArray;
-  fileTypesArray = [NSArray arrayWithObjects:@"scpt", nil];
-  
-  [op setCanChooseFiles:YES];
-  [op setAllowedFileTypes:fileTypesArray];
-  
-  if ( [op runModal] == NSOKButton ) {
-    NSArray *filenames = [op URLs];    
-  	[outOfRangeScriptPath setStringValue:[[filenames objectAtIndex:0] path]];
-  }
+	[op runModalForDirectory:@"~" file:nil types:[NSArray arrayWithObject:@"scpt"]];
+	
+	NSArray *filenames = [op filenames];
+	[outOfRangeScriptPath setStringValue:[filenames objectAtIndex:0]];    
+}
+*/
+
+- (IBAction)outOfRangeScriptChange:(id)sender
+{
+    NSURL *file = [self chooseScript];
+    if(file) {
+        //outOfRangeScriptURL = file;
+        [outOfRangeScriptPath setStringValue:file.path];
+    }
 }
 
 - (IBAction)outOfRangeScriptClear:(id)sender
